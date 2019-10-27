@@ -33,35 +33,13 @@ class Model(tf.Module):
         self.SRCNN.add(Conv2D(filters=1, kernel_size=[5, 5], strides=[1, 1]))
         self.SRCNN.compile(optimizer=Adam(learning_rate=1e-4), loss='mean_squared_error', metrics=['mean_squared_error'])
 
-    def __str__(self):
-        return self.SRCNN.summary();
-
-
-def model():
-    SRCNN = Sequential()
-    SRCNN.add(Conv2D(filters=64, kernel_size=[9, 9], strides=[1, 1], input_shape=(32, 32, 1)))
-    SRCNN.add(tf.keras.layers.ReLU())
-    SRCNN.add(Conv2D(filters=32, kernel_size=[1, 1], strides=[1, 1]))
-    SRCNN.add(tf.keras.layers.ReLU())
-    SRCNN.add(Conv2D(filters=1, kernel_size=[5, 5], strides=[1, 1]))
-    SRCNN.compile(optimizer=Adam(learning_rate=1e-4), loss='mean_squared_error', metrics=['mean_squared_error'])
-    return SRCNN
-
-
-def predict_model():
-    SRCNN = Sequential()
-    SRCNN.add(Conv2D(filters=64, kernel_size=[9,9], strides=[1,1], input_shape=(None, None, 1)))
-    SRCNN.add(tf.keras.layers.ReLU())
-    SRCNN.add(Conv2D(filters=32, kernel_size=[1,1], strides=[1,1]))
-    SRCNN.add(tf.keras.layers.ReLU())
-    SRCNN.add(Conv2D(filters=1, kernel_size=[5,5], strides=[1,1]))
-    SRCNN.compile(optimizer=Adam(learning_rate=1e-4), loss='mean_squared_error', metrics=['mean_squared_error'])
-    return SRCNN
+    def __call__(self):
+        self.SRCNN.summary()
 
 
 def train():
     srcnn_model = Model()
-    print(srcnn_model)
+    srcnn_model()
 
     data, label = pd.read_training_data("./train.h5")
 
@@ -70,13 +48,13 @@ def train():
                                  save_weights_only=False, mode='min', period=50)
     callbacks_list = [checkpoint]
 
-    srcnn_model.fit(data, label, batch_size=128,
+    srcnn_model.SRCNN.fit(data, label, batch_size=128,
                     callbacks=callbacks_list, shuffle=True, epochs=200)
 
 
 def predict():
-    srcnn_model = predict_model(input_shape=(None, None, 1))
-    srcnn_model.load_weights("./checkpoint/saved-model-200.h5")
+    srcnn_model = Model(input_shape=(None, None, 1))
+    srcnn_model.SRCNN.load_weights("./checkpoint/saved-model-200.h5")
 
     IMG_NAME = "./Test/Temp/butterfly_GT.bmp"
     INPUT_NAME = "./result/bicubic.png"
@@ -93,7 +71,7 @@ def predict():
 
     Y = numpy.zeros((1, img.shape[0], img.shape[1], 1), dtype=float)
     Y[0, :, :, 0] = Y_img.astype(float) / 255.
-    pre = srcnn_model.predict(Y, batch_size=1) * 255.
+    pre = srcnn_model.SRCNN.predict(Y, batch_size=1) * 255.
     pre[pre[:] > 255] = 255
     pre[pre[:] < 0] = 0
     pre = pre.astype(numpy.uint8)
